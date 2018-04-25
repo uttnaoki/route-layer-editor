@@ -29,10 +29,38 @@ map.on('click', (e) => {
 
 // content の内容でファイルを作成し，ダウンロードする．
 const download_file = (content, format) => {
-  const link = document.createElement( 'a' );
-  link.href = window.URL.createObjectURL( new Blob( [content] ) );
-  link.download = `pathdata.${format}`;
-  link.click();
+  const mimeType = 'text/plain';
+  const download_file_name = `pathdata.${format}`;
+
+  // BOMは文字化け対策
+  const bom  = new Uint8Array([0xEF, 0xBB, 0xBF]);
+  const blob = new Blob([bom, content], {type : mimeType});
+
+  const a_tag = document.createElement('a');
+  a_tag.download = download_file_name;
+  a_tag.target   = '_blank';
+
+  // 各ブラウザに対応したダウンロード処理
+  if (window.navigator.msSaveBlob) {
+    // for IE
+    window.navigator.msSaveBlob(blob, download_file_name)
+  }
+  else if (window.URL && window.URL.createObjectURL) {
+    // for Firefox
+    a_tag.href = window.URL.createObjectURL(blob);
+    document.body.appendChild(a_tag);
+    a_tag.click();
+    document.body.removeChild(a_tag);
+  }
+  else if (window.webkitURL && window.webkitURL.createObject) {
+    // for Chrome
+    a_tag.href = window.webkitURL.createObjectURL(blob);
+    a_tag.click();
+  }
+  else {
+    // for Safari
+    window.open('data:' + mimeType + ';base64,' + window.Base64.encode(content), '_blank');
+  }
 }
 
 // csv形式で座標データを作成し，ダウンロードする．
